@@ -17,6 +17,9 @@ const livroSchema = new mongoose.Schema(
       required: [true, "O editora é obrigatório."]
     },
     numeroPaginas: { type: Number }
+  },
+  {
+    versionKey: false
   }
 );
 
