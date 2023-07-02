@@ -1,14 +1,15 @@
-import { livros } from "../models/index.js";
+import { autores, livros } from "../models/index.js";
 import NaoEncontrado from "../Errors/NaoEncontrado.js";
 
 class LivroController {
 
   static listarLivros = async (req, res, next) => {
     try {
-      const livrosResultado = await livros.find()
-        .populate("autor")
-        .exec();
-      res.status(200).json(livrosResultado);
+      const buscaLivros = livros.find();
+
+      req.resultado = buscaLivros;
+
+      next();
     } catch (erro) {
       next(erro);
     }
@@ -18,9 +19,7 @@ class LivroController {
     try {
       const id = req.params.id;
 
-      const livroResultado = await livros.findById(id)
-        .populate("autor", "nome")
-        .exec();
+      const livroResultado = await livros.findById(id);
 
       if (livroResultado !== null) {
         res.status(200).send(livroResultado);
@@ -77,21 +76,49 @@ class LivroController {
 
   static listarLivroPorFiltro = async (req, res, next) => {
     try {
-      const { editora, titulo } = req.query;
-      // const regex = new RegExp(titulo, "i");
+      const busca = await processaBusca(req.query);
 
-      const busca = {};
+      if (busca !== null) {
+        const livrosResultado = livros
+          .find(busca);
 
-      if (editora) busca.editora = editora;
-      // if(titulo) busca.titulo = regex;
-      if (titulo) busca.titulo = { $regex: titulo, $options: "i" };
+        req.resultado = livrosResultado;
 
-      const livrosResultado = await livros.find(busca);
-      res.status(200).send(livrosResultado);
+        next();
+      } else {
+        res.status(200).send([]);
+      }
     } catch (erro) {
       next(erro);
     }
   };
+}
+
+async function processaBusca(parametros) {
+  const { editora, titulo, minPaginas, maxPaginas, nomeAutor } = parametros;
+  // const regex = new RegExp(titulo, "i");
+  let busca = {};
+
+  if (editora) busca.editora = editora;
+  // if(titulo) busca.titulo = regex;
+  if (titulo) busca.titulo = { $regex: titulo, $options: "i" };
+
+  // gte = Greater than or Equal = Maior ou Igual que 
+  if (minPaginas) busca.numeroPaginas.$gte = minPaginas;
+  // lte = Less than or Equal = Menor ou Igual que 
+  if (maxPaginas) busca.numeroPaginas.$lte = maxPaginas;
+
+  if (nomeAutor) {
+    const autor = await autores.findOne({ nome: nomeAutor });
+
+    if (autor !== null) {
+      busca.autor = autor._id;
+    } else {
+      busca = null;
+    }
+  }
+
+  return busca;
 }
 
 export default LivroController;
