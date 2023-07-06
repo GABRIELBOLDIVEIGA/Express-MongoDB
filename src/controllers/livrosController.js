@@ -22,6 +22,7 @@ class LivroController {
       const livroResultado = await livros.findById(id);
 
       if (livroResultado !== null) {
+        console.log("Livro Populate", livroResultado);
         res.status(200).send(livroResultado);
       } else {
         next(new NaoEncontrado("Id do livro não localizado."));
